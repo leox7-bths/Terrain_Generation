@@ -1,9 +1,8 @@
-import java.awt.AWTException;
-import java.awt.Robot;
-import java.awt.event.KeyEvent;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.util.ArrayList;
+import java.util.List;
+import java.util.Random;
 import java.util.Scanner;
 
 
@@ -12,21 +11,50 @@ public class Main {
         Scanner scanner = new Scanner(System.in);
         int x = 0;
         int y = 0;
+        int temph = 0;
+        String tempb = "";
+        Random random = new Random();
+        int randomIndex = 0;
+        List<List<String>> blocks = new ArrayList<>();
+        List<String> noblocks = new ArrayList<>();
+        List<String> plainsblocks = new ArrayList<>();
+        noblocks.add("B");
+        plainsblocks.add("S");
+        plainsblocks.add("G");
+        plainsblocks.add("W");
+        plainsblocks.add("D");
+        blocks.add(noblocks);                                   //noblocks id 0
+        blocks.add(plainsblocks);                               //plainsblocks id 2
+
+
+        //generate chunks
+        String input1 = scanner.nextLine();
         ArrayList<String> chunks = getFileData("src/data");
         String[][] chunk = new String[12][16];
         for (int i = 0; i < 12; i++) {
             for (int j = 0; j < 16; j++) {
-                chunk[i][j] = ".";
+                if (input1.equals("bedrock")) {
+                    temph = 0;
+                    tempb = "B";
+                } else if (input1.equals("plains")) {
+                    temph = (int) (Math.random() * 10);
+                    randomIndex = random.nextInt(blocks.get(1).size());
+                    tempb = blocks.get(1).get(randomIndex);
+                }
+                chunk[i][j] = temph + tempb;
+
             }
         }
-        chunk[6][8] = "o";
+
+        chunk[6][8] = "[]";
         y = 8;
         x = 6;
+        String before = "0B";
 
         while (true) {
-            String input = scanner.nextLine();
+            String input2 = scanner.nextLine();
 
-            if (input.equalsIgnoreCase("q")) {
+            if (input2.equalsIgnoreCase("q")) {
                 System.out.println("Exiting game.");
                 break;
             }
@@ -41,26 +69,30 @@ public class Main {
             System.out.println("");
             //remove
 
-            switch (input.toLowerCase()) {
+            switch (input2.toLowerCase()) {
                 case "w":
-                    chunk[x][y] = ".";
+                    chunk[x][y] = before;
                     x--;
-                    chunk[x][y] = "o";
+                    before = chunk[x][y];
+                    chunk[x][y] = "[]";
                     break;
                 case "s":
-                    chunk[x][y] = ".";
+                    chunk[x][y] = before;
                     x++;
-                    chunk[x][y] = "o";
+                    before = chunk[x][y];
+                    chunk[x][y] = "[]";
                     break;
                 case "a":
-                    chunk[x][y] = ".";
+                    chunk[x][y] = before;
                     y--;
-                    chunk[x][y] = "o";
+                    before = chunk[x][y];
+                    chunk[x][y] = "[]";
                     break;
                 case "d":
-                    chunk[x][y] = ".";
+                    chunk[x][y] = before;
                     y++;
-                    chunk[x][y] = "o";
+                    before = chunk[x][y];
+                    chunk[x][y] = "[]";
                     break;
                 default:
                     System.out.println("Invalid input. Use W, A, S, D, or Q.");
