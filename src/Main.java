@@ -5,6 +5,8 @@ import java.util.List;
 import java.util.Random;
 import java.util.Scanner;
 
+import static java.lang.Math.random;
+
 
 public class Main {
     public static void main(String[] args) {
@@ -15,14 +17,16 @@ public class Main {
         String tempb = "";
         Random random = new Random();
         int randomIndex = 0;
+        int generatenum = 0;
+        String before = "";
         List<List<String>> blocks = new ArrayList<>();
         List<String> noblocks = new ArrayList<>();
         List<String> plainsblocks = new ArrayList<>();
         noblocks.add("B");
-        plainsblocks.add("S");
+//        plainsblocks.add("S");
         plainsblocks.add("G");
         plainsblocks.add("W");
-        plainsblocks.add("D");
+//        plainsblocks.add("D");
         blocks.add(noblocks);                                   //noblocks id 0
         blocks.add(plainsblocks);                               //plainsblocks id 2
 
@@ -36,21 +40,117 @@ public class Main {
                 if (input1.equals("bedrock")) {
                     temph = 0;
                     tempb = "B";
+                    before = "0B";
                 } else if (input1.equals("plains")) {
-                    temph = (int) (Math.random() * 10);
+                    temph = (int) (random() * 10);
                     randomIndex = random.nextInt(blocks.get(1).size());
                     tempb = blocks.get(1).get(randomIndex);
                 }
                 chunk[i][j] = temph + tempb;
-
             }
         }
 
+
+
+        for (int i = 0; i < 12; i++) {
+            for (int j = 0; j < 16; j++) {
+                if (input1.equals("bedrock")) {
+                    temph = 0;
+                    tempb = "B";
+                    before = "0B";
+                } else if (input1.equals("plains")) {
+                    generatenum = (int) (Math.random() * 10);
+                    if ((generatenum == 4)) {
+                        //bottom
+                        if (i+1 < chunk.length) {
+                            System.out.println("bottom");
+                            String[] parts = chunk[i+1][j].split("");
+                            if (!((int) (Math.random() * 10) == 9) && !((int) (Math.random() * 10) == 10)) {
+                                temph = Integer.parseInt(parts[0]);
+                            } else {
+                                temph = (int) (random() * 10);
+                            }
+                            if (!((int) (Math.random() * 10) == 9) && !((int) (Math.random() * 10) == 10)) {
+                                tempb = parts[1];
+                            } else {
+                                randomIndex = random.nextInt(blocks.get(1).size());
+                                tempb = blocks.get(1).get(randomIndex);
+                            }
+                        }
+                    } else if (generatenum == 3) {
+                        //top
+                        if (i-1 > 0) {
+                            System.out.println("top");
+                            String[] parts = chunk[i-1][j].split("");
+                            if (!((int) (Math.random() * 10) == 9) && !((int) (Math.random() * 10) == 10)) {
+                                temph = Integer.parseInt(parts[0]);
+                            } else {
+                                temph = (int) (random() * 10);
+                            }
+                            if (!((int) (Math.random() * 10) == 9) && !((int) (Math.random() * 10) == 10)) {
+                                tempb = parts[1];
+                            } else {
+                                randomIndex = random.nextInt(blocks.get(1).size());
+                                tempb = blocks.get(1).get(randomIndex);
+                            }
+                        }
+                    } else if (generatenum == 2) {
+                        //right
+                        if (j+1 < chunk[i].length) {
+                            System.out.println("right");
+                            String[] parts = chunk[i][j+1].split("");
+                            if (!((int) (Math.random() * 10) == 9) && !((int) (Math.random() * 10) == 10)) {
+                                temph = Integer.parseInt(parts[0]);
+                            } else {
+                                temph = (int) (random() * 10);
+                            }
+                            if (!((int) (Math.random() * 10) == 9) && !((int) (Math.random() * 10) == 10)) {
+                                tempb = parts[1];
+                            } else {
+                                randomIndex = random.nextInt(blocks.get(1).size());
+                                tempb = blocks.get(1).get(randomIndex);
+                            }
+                        }
+                    } else {
+                        //left
+                        if (j-1 > 0) {
+                            System.out.println("left");
+                            String[] parts = chunk[i][j-1].split("");
+                            if (!((int) (Math.random() * 10) == 9) && !((int) (Math.random() * 10) == 10)) {
+                                temph = Integer.parseInt(parts[0]);
+                            } else {
+                                temph = (int) (random() * 10);
+                            }
+                            if (!((int) (Math.random() * 10) == 9) && !((int) (Math.random() * 10) == 10)) {
+                                tempb = parts[1];
+                            } else {
+                                randomIndex = random.nextInt(blocks.get(1).size());
+                                tempb = blocks.get(1).get(randomIndex);
+                            }
+                        }
+                    }
+                }
+                chunk[i][j] = temph + tempb;
+            }
+        }
+
+        before = chunk[6][8];
         chunk[6][8] = "[]";
         y = 8;
         x = 6;
-        String before = "0B";
 
+        //remove
+        for (int a = 0; a < chunk.length; a++) {
+            for (int b = 0; b < chunk[a].length; b++) {
+                System.out.print(chunk[a][b] + " ");
+            }
+            System.out.println();
+        }
+        System.out.println("");
+        //remove
+
+        String[] parts = new String[0];
+        String[] parts2 = new String[0];
         while (true) {
             String input2 = scanner.nextLine();
 
@@ -71,24 +171,52 @@ public class Main {
 
             switch (input2.toLowerCase()) {
                 case "w":
+                    parts = before.split("");
+                    parts2 = chunk[x-1][y].split("");
+                    if (Integer.parseInt(parts[0]) < Integer.parseInt(parts2[0])) {
+                        if (Integer.parseInt(parts[0]) + 1 != Integer.parseInt(parts2[0])) {
+                            break;
+                        }
+                    }
                     chunk[x][y] = before;
                     x--;
                     before = chunk[x][y];
                     chunk[x][y] = "[]";
                     break;
                 case "s":
+                    parts = before.split("");
+                    parts2 = chunk[x+1][y].split("");
+                    if (Integer.parseInt(parts[0]) < Integer.parseInt(parts2[0])) {
+                        if (Integer.parseInt(parts[0]) + 1 != Integer.parseInt(parts2[0])) {
+                            break;
+                        }
+                    }
                     chunk[x][y] = before;
                     x++;
                     before = chunk[x][y];
                     chunk[x][y] = "[]";
                     break;
                 case "a":
+                    parts = before.split("");
+                    parts2 = chunk[x][y-1].split("");
+                    if (Integer.parseInt(parts[0]) < Integer.parseInt(parts2[0])) {
+                        if (Integer.parseInt(parts[0]) + 1 != Integer.parseInt(parts2[0])) {
+                            break;
+                        }
+                    }
                     chunk[x][y] = before;
                     y--;
                     before = chunk[x][y];
                     chunk[x][y] = "[]";
                     break;
                 case "d":
+                    parts = before.split("");
+                    parts2 = chunk[x][y+1].split("");
+                    if (Integer.parseInt(parts[0]) < Integer.parseInt(parts2[0])) {
+                        if (Integer.parseInt(parts[0]) + 1 != Integer.parseInt(parts2[0])) {
+                            break;
+                        }
+                    }
                     chunk[x][y] = before;
                     y++;
                     before = chunk[x][y];
