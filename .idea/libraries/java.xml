@@ -1,0 +1,16 @@
+<component name="libraryTable">
+  <library name="java">
+    <CLASSES />
+    <JAVADOC />
+    <SOURCES>
+      <root url="jar://$USER_HOME$/Downloads/JNoise-4.1.0.zip!/JNoise-4.1.0/core/src/main/java" />
+      <root url="jar://$USER_HOME$/Downloads/JNoise-4.1.0.zip!/JNoise-4.1.0/generators/src/main/java" />
+      <root url="jar://$USER_HOME$/Downloads/JNoise-4.1.0.zip!/JNoise-4.1.0/generators/src/test/java" />
+      <root url="jar://$USER_HOME$/Downloads/JNoise-4.1.0.zip!/JNoise-4.1.0/modifiers/src/main/java" />
+      <root url="jar://$USER_HOME$/Downloads/JNoise-4.1.0.zip!/JNoise-4.1.0/modules/src/main/java" />
+      <root url="jar://$USER_HOME$/Downloads/JNoise-4.1.0.zip!/JNoise-4.1.0/pipeline/src/main/java" />
+      <root url="jar://$USER_HOME$/Downloads/JNoise-4.1.0.zip!/JNoise-4.1.0/pipeline/src/test/java" />
+      <root url="jar://$USER_HOME$/Downloads/JNoise-4.1.0.zip!/JNoise-4.1.0/transformers/src/main/java" />
+    </SOURCES>
+  </library>
+</component>

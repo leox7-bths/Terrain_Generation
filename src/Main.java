@@ -10,8 +10,8 @@ public class Main extends JPanel implements KeyListener {
     static int width = 576;
     static int length = 768;
 
-    static int viewWidth = 100;
-    static int viewLength = 200;
+    static int viewWidth = 110;
+    static int viewLength = 100;
 
     static final int MIN_VIEW = 20;
     static final int MAX_VIEW = 700;
@@ -118,27 +118,45 @@ public class Main extends JPanel implements KeyListener {
         Random random = new Random();
         double[][] heightMap = new double[width][length];
 
-        for (int i = 0; i < width; i++)
-            for (int j = 0; j < length; j++)
-                heightMap[i][j] =
-                        Math.sin(i / 18.0) +
-                                Math.cos(j / 18.0) +
-                                0.6 * Math.sin(i / 8.0) * Math.cos(j / 8.0) +
-                                random.nextDouble();
+
+        // Terrain
+        for (int i = 0; i < width; i++) {
+            for (int j = 0; j < length; j++) {
+                heightMap[i][j] = Math.sin(i / 18.0) + Math.cos(j / 18.0) + 0.6 * Math.sin(i / 8.0) * Math.cos(j / 8.0) + random.nextDouble();
+            }
+        }
+
 
         double minH = 999, maxH = -999;
-        for (int i = 0; i < width; i++)
+        for (int i = 0; i < width; i++) {
             for (int j = 0; j < length; j++) {
                 minH = Math.min(minH, heightMap[i][j]);
                 maxH = Math.max(maxH, heightMap[i][j]);
             }
+        }
 
-        for (int i = 0; i < width; i++)
+        for (int i = 0; i < width; i++) {
             for (int j = 0; j < length; j++) {
                 int h = (int) ((heightMap[i][j] - minH) / (maxH - minH) * 9);
-                chunk[i][j] = h + (terrain.equals("bedrock") ? "B" : "G");
-            }
+                if (h == 0) {
+                    chunk[i][j] = h + "W";
+                    chunk[i-1][j] = h + "W";
+                    chunk[i-1][j+1] = h + "W";
+                    chunk[i-1][j-1] = h + "W";
+                    chunk[i+1][j] = h + "W";
+                    chunk[i+1][j+1] = h + "W";
+                    chunk[i+1][j-1] = h + "W";
+                    chunk[i][j-1] = h + "W";
+                    chunk[i][j+1] = h + "W";
 
+                } else {
+                    chunk[i][j] = h + (terrain.equals("bedrock") ? "B" : "G");
+                }
+
+            }
+        }
+
+        //Lake
         int numLakes = width * length / 18000;
 
         for (int l = 0; l < numLakes; l++) {
@@ -157,24 +175,29 @@ public class Main extends JPanel implements KeyListener {
                 radius += random.nextInt(3) - 1;
                 radius = Math.max(2, Math.min(6, radius));
 
-                for (int dx = -radius; dx <= radius; dx++)
-                    for (int dy = -radius; dy <= radius; dy++)
+                for (int dx = -radius; dx <= radius; dx++) {
+                    for (int dy = -radius; dy <= radius; dy++) {
                         if (dx * dx + dy * dy <= radius * radius) {
                             int nx = wx + dx, ny = wy + dy;
                             int h = Integer.parseInt(chunk[nx][ny].substring(0, 1));
                             chunk[nx][ny] = h + "W";
                         }
+                    }
+                }
             }
         }
 
+        //Sand
         for (int layer = 0; layer < 5; layer++) {
             String[][] tmp = new String[width][length];
-            for (int i = 0; i < width; i++)
-                for (int j = 0; j < length; j++)
+            for (int i = 0; i < width; i++) {
+                for (int j = 0; j < length; j++) {
                     tmp[i][j] = chunk[i][j];
+                }
+            }
 
-            for (int i = 1; i < width - 1; i++)
-                for (int j = 1; j < length - 1; j++)
+            for (int i = 1; i < width - 1; i++) {
+                for (int j = 1; j < length - 1; j++) {
                     if (chunk[i][j].endsWith("G")) {
                         boolean near = false;
                         for (int di = -1; di <= 1; di++)
@@ -185,15 +208,20 @@ public class Main extends JPanel implements KeyListener {
                             tmp[i][j] = h + "S";
                         }
                     }
+                }
+            }
             chunk = tmp;
         }
 
-        for (int i = 0; i < width; i++)
-            for (int j = 0; j < length; j++)
+        //Flower
+        for (int i = 0; i < width; i++) {
+            for (int j = 0; j < length; j++) {
                 if (chunk[i][j].endsWith("G") && random.nextInt(70) == 0) {
                     int h = Integer.parseInt(chunk[i][j].substring(0, 1));
                     chunk[i][j] = h + "F";
                 }
+            }
+        }
 
         before = chunk[x][y];
         chunk[x][y] = "[]";
