@@ -222,7 +222,7 @@ public class Main extends JPanel implements KeyListener {
         if (k == KeyEvent.VK_D) right = true;
         if (k == KeyEvent.VK_N) showText = !showText;
 
-        if (k == KeyEvent.VK_R) regenerate();
+        if (k == KeyEvent.VK_R) Generation.regenerate();
         if (k == KeyEvent.VK_C) {
             viewWidth = 100;
             viewLength = 110;
@@ -248,243 +248,6 @@ public class Main extends JPanel implements KeyListener {
     public void keyReleased(KeyEvent e) {}
     public void keyTyped(KeyEvent e) {}
 
-    static void regenerate() {
-        penguins.clear();
-        PerlinNoise noise = new PerlinNoise(random.nextInt());
-        double[][] heightMap = new double[width][length];
-
-        double scale = 0.015;
-        int octaves = 5;
-        double persistence = 0.5;
-
-        for (int i = 0; i < width; i++) {
-            for (int j = 0; j < length; j++) {
-                double amplitude = 1;
-                double frequency = 1;
-                double h = 0;
-
-                for (int o = 0; o < octaves; o++) {
-                    h += noise.noise(i * scale * frequency, j * scale * frequency) * amplitude;
-                    amplitude *= persistence;
-                    frequency *= 2;
-                }
-                heightMap[i][j] = h;
-            }
-        }
-
-        double minH = Double.MAX_VALUE;
-        double maxH = Double.MIN_VALUE;
-        for (int i = 0; i < width; i++)
-            for (int j = 0; j < length; j++) {
-                minH = Math.min(minH, heightMap[i][j]);
-                maxH = Math.max(maxH, heightMap[i][j]);
-            }
-
-        for (int i = 0; i < width; i++) {
-            for (int j = 0; j < length; j++) {
-
-                int maxTerrainHeight = 9; // default
-                if (terrain.equals("plains")) maxTerrainHeight = 6;
-                if (terrain.equals("desert")) maxTerrainHeight = 6;
-                if (terrain.equals("snow")) maxTerrainHeight = 4;
-                if (terrain.equals("glacier")) maxTerrainHeight = 5;
-
-                int h = (int)((heightMap[i][j] - minH) / (maxH - minH) * maxTerrainHeight);
-
-                boolean isWater = false;
-                boolean isIce = false;
-
-                if (terrain.equals("plains")) {
-                    isWater = h <= 1;
-                }
-                else if (terrain.equals("desert")) {
-                    isWater = h <= 0;
-                }
-                else if (terrain.equals("snow")) {
-                    isIce = h <= 0;
-                }
-                else if (terrain.equals("glacier")) {
-                    isWater = h <= 2;
-                }
-
-                if (isWater) {
-                    chunk[i][j] = h + "Water";
-                } else if (isIce) {
-                    chunk[i][j] = h + "Ice";
-                } else {
-                    if (terrain.equals("plains"))
-                        chunk[i][j] = h + "Grass";
-                    else if (terrain.equals("desert"))
-                        chunk[i][j] = h + "Sand";
-                    else if (terrain.equals("snow"))
-                        chunk[i][j] = h + "Snow";
-                    else if (terrain.equals("glacier"))
-                        chunk[i][j] = h + "GlacierIce";
-                    else
-                        chunk[i][j] = h + "Bedrock";
-                }
-            }
-        }
-
-        if (terrain.equals("plains")) {
-            for (int i = 0; i < width; i++) {
-                for (int j = 0; j < length; j++) {
-
-                    // sand
-                    if (i > 0 && i < width - 1 && j > 0 && j < length - 1) {
-                        if (chunk[i][j].endsWith("Grass")) {
-                            boolean nearWater = false;
-                            for (int dx = -1; dx <= 1; dx++) {
-                                for (int dy = -1; dy <= 1; dy++) {
-                                    if (chunk[i + dx][j + dy].endsWith("Water")) {
-                                        nearWater = true;
-                                    }
-                                }
-                            }
-                            if (nearWater) {
-                                chunk[i][j] = chunk[i][j].charAt(0) + "Sand";
-                                continue;
-                            }
-                        }
-                    }
-
-                    // flowers
-                    if (chunk[i][j].endsWith("Grass") && random.nextInt(70) == 0) {
-                        chunk[i][j] = chunk[i][j].charAt(0) + "Flower";
-                    }
-
-                    // cows
-                    if (chunk[i][j].endsWith("Grass") && random.nextInt(1000) == 0) {
-                        boolean spaceAround = true;
-                        // Check adjacent cells for other cows
-                        for (int dx = -1; dx <= 1; dx++) {
-                            for (int dy = -1; dy <= 1; dy++) {
-                                int nx = i + dx;
-                                int ny = j + dy;
-
-                                if (nx < 0 || nx >= width || ny < 0 || ny >= length)
-                                    continue;
-
-                                if (chunk[nx][ny].endsWith("Cow")) {
-                                    spaceAround = false;
-                                }
-                            }
-                        }
-
-                        // inside plains cows placement
-                        if (spaceAround) {
-                            String original = chunk[i][j];
-                            chunk[i][j] = chunk[i][j].charAt(0) + "Cow";
-                            cows.add(new Cow(i, j, original));
-                        }
-                    }
-                }
-            }
-        }
-
-        if (terrain.equals("desert")) {
-            for (int i = 1; i < width - 1; i++) {
-                for (int j = 1; j < length - 1; j++) {
-
-                    // cactus
-                    if (chunk[i][j].endsWith("Sand") && random.nextInt(250) == 0)
-                        chunk[i][j] = chunk[i][j].charAt(0) + "Cactus";
-
-                    // dead bush
-                    if (chunk[i][j].endsWith("Sand") && random.nextInt(250) == 0)
-                        chunk[i][j] = chunk[i][j].charAt(0) + "DeadBush";
-
-                    // palm tree (near water)
-                    if (chunk[i][j].endsWith("Sand")) {
-                        boolean nearWater = false;
-
-                        for (int dx = -1; dx <= 1; dx++)
-                            for (int dy = -1; dy <= 1; dy++)
-                                if (chunk[i + dx][j + dy].endsWith("Water"))
-                                    nearWater = true;
-
-                        if (nearWater && random.nextInt(10) == 0) {
-                            for (int dx = -1; dx <= 1; dx++)
-                                for (int dy = -1; dy <= 1; dy++)
-                                    chunk[i + dx][j + dy] =
-                                            chunk[i][j].charAt(0) + "PalmTree";
-                        }
-                    }
-                }
-            }
-        }
-
-        if (terrain.equals("snow")) {
-            for (int i = 2; i < width - 2; i++) {
-                for (int j = 2; j < length - 2; j++) {
-
-                    // spruce tree
-                    if (chunk[i][j].endsWith("Snow") && random.nextInt(500) == 0) {
-                        // trunk (center)
-                        chunk[i][j] = chunk[i][j].charAt(0) + "SpruceLeaves2";
-
-                        // outer light leaves
-                        int[][] lightLeaves = {
-                                {-2, -1}, {-2, 0}, {-2, 1},
-                                {-1, -2}, {-1, -1}, {-1, 1}, {-1, 2},
-                                {0, -2},  {0, 2},
-                                {1, -2},  {1, -1},  {1, 1},  {1, 2},
-                                {2, -1},  {2, 0},  {2, 1}
-                        };
-
-                        for (int[] o : lightLeaves) {
-                            int x = i + o[0];
-                            int y = j + o[1];
-                            chunk[x][y] = chunk[x][y].charAt(0) + "SpruceLeaves1";
-                        }
-
-                        // inner dark leaves
-                        int[][] darkLeaves = {
-                                {-1, 0},
-                                {0, -1}, {0, 1},
-                                {1, 0}
-                        };
-
-                        for (int[] o : darkLeaves) {
-                            int x = i + o[0];
-                            int y = j + o[1];
-                            chunk[x][y] = chunk[x][y].charAt(0) + "SpruceLeaves2";
-                        }
-                    }
-                }
-            }
-        }
-
-        if (terrain.equals("glacier")) {
-            for (int i = 2; i < width - 2; i++) {
-                for (int j = 2; j < length - 2; j++) {
-
-
-                    // penguins
-                    if (chunk[i][j].endsWith("GlacierIce") && random.nextInt(700) == 0) {
-                        boolean spaceAround = true;
-                        // Check adjacent cells for other penguins
-                        for (int dx = -1; dx <= 1; dx++) {
-                            for (int dy = -1; dy <= 1; dy++) {
-                                if (chunk[i + dx][j + dy].endsWith("Penguin")) {
-                                    spaceAround = false;
-                                }
-                            }
-                        }
-                        // inside snow penguin placement
-                        if (spaceAround) {
-                            String original = chunk[i][j];
-                            chunk[i][j] = chunk[i][j].charAt(0) + "Penguin";
-                            penguins.add(new Penguin(i, j, original));
-                        }
-                    }
-                }
-            }
-        }
-
-        before = chunk[x][y];
-        chunk[x][y] = "[]";
-    }
 
     public static void main(String[] args) {
 
@@ -521,7 +284,7 @@ public class Main extends JPanel implements KeyListener {
             e.printStackTrace();
         }
 
-        regenerate();
+        Generation.regenerate();
 
         JFrame frame = new JFrame("Perlin Terrain Viewer");
         Main panel = new Main();
@@ -569,8 +332,8 @@ public class Main extends JPanel implements KeyListener {
 
                 before = chunk[x][y];
                 chunk[x][y] = "[]";
-                penguinTurn();
-                cowTurn();
+                Penguin.penguinTurn();
+                Cow.cowTurn();
             }
             if (terrain.equals("desert") && random.nextInt(40) == 0) {
 
@@ -604,176 +367,17 @@ public class Main extends JPanel implements KeyListener {
         }).start();
     }
 
-
-    static void penguinTurn() {
-        for (Penguin p : penguins) {
-            int px = p.x;
-            int py = p.y;
-
-            // Random direction
-            int[] dxs = {-1, 0, 1, 0};
-            int[] dys = {0, -1, 0, 1};
-            int dir = random.nextInt(4);
-            int nx = px + dxs[dir];
-            int ny = py + dys[dir];
-            p.facingLeft = (dys[dir] == -1);
-
-            // Bounds check
-            if (nx < 0 || nx >= width || ny < 0 || ny >= length) continue;
-
-            // Only move on walkable terrain
-            String targetCell = chunk[nx][ny];
-            if (targetCell.endsWith("Snow") || targetCell.contains("Ice") ||
-                    targetCell.contains("Water")) {
-
-                // Restore previous cell
-                chunk[px][py] = p.under;
-
-                // Save new cell under penguin
-                p.under = chunk[nx][ny];
-                p.x = nx;
-                p.y = ny;
-
-                // Place penguin
-                chunk[nx][ny] = p.under.charAt(0) + "Penguin";
-            }
-        }
-    }
-
-    static class Penguin {
-        int x, y;
-        String under;
-        boolean facingLeft = false;
-
-        Penguin(int x, int y, String under) {
-            this.x = x;
-            this.y = y;
-            this.under = under;
-        }
-    }
-
+    //Penguin________________________________________________________
     static java.util.List<Penguin> penguins = new java.util.ArrayList<>();
     static BufferedImage penguinImage;
     static Color penguinPixelColor;
 
     //Cow________________________________________________________
-    static void cowTurn() {
-        for (Cow p : cows) {
-            int px = p.x;
-            int py = p.y;
-
-
-            // Random direction
-            int[] dxs = {-1, 0, 1, 0};
-            int[] dys = {0, -1, 0, 1};
-            int dir = random.nextInt(4);
-            int nx = px + dxs[dir];
-            int ny = py + dys[dir];
-            p.facingLeft = (dys[dir] == -1);
-
-            // Bounds check
-            if (nx < 0 || nx >= width || ny < 0 || ny >= length) continue;
-
-            // Only move on walkable terrain
-            String targetCell = chunk[nx][ny];
-            if (targetCell.endsWith("Grass")) {
-
-                // Restore previous cell
-                chunk[px][py] = p.under;
-
-                // Save new cell under cow
-                p.under = chunk[nx][ny];
-                p.x = nx;
-                p.y = ny;
-
-                // Place cow
-                chunk[nx][ny] = p.under.charAt(0) + "Cow";
-            }
-        }
-    }
-
-    static class Cow {
-        int x, y;
-        String under;
-        boolean facingLeft = false;
-
-        Cow(int x, int y, String under) {
-            this.x = x;
-            this.y = y;
-            this.under = under;
-        }
-    }
-
     static java.util.List<Cow> cows = new java.util.ArrayList<>();
     static BufferedImage cowImage;
     static Color cowPixelColor;
 
-    //Tumbleweed-----------------------------------------------------------------------------------------------
-    static class Tumbleweed {
-        double x, y;
-        double vx, vy;
-        double angle;
-        double spin;
-        int life;
-
-        Tumbleweed(double x, double y) {
-            this.x = x;
-            this.y = y;
-            vx = random.nextDouble() * 0.6 + 0.4;
-            vy = random.nextDouble() * 0.4 - 0.2;
-            spin = random.nextDouble() * 0.2 + 0.1;
-            life = 200 + random.nextInt(200);
-        }
-    }
+    //Tumbleweed________________________________________________________
     static java.util.List<Tumbleweed> tumbleweeds = new java.util.ArrayList<>();
 
-}
-
-class PerlinNoise {
-    private final int[] p = new int[512];
-
-    public PerlinNoise(int seed) {
-        Random rand = new Random(seed);
-        int[] perm = new int[256];
-        for (int i = 0; i < 256; i++) perm[i] = i;
-        for (int i = 255; i > 0; i--) {
-            int j = rand.nextInt(i + 1);
-            int tmp = perm[i];
-            perm[i] = perm[j];
-            perm[j] = tmp;
-        }
-        for (int i = 0; i < 512; i++) p[i] = perm[i & 255];
-    }
-
-    private double fade(double t) {
-        return t * t * t * (t * (t * 6 - 15) + 10);
-    }
-
-    private double lerp(double t, double a, double b) {
-        return a + t * (b - a);
-    }
-
-    private double grad(int hash, double x, double y) {
-        int h = hash & 3;
-        return ((h & 1) == 0 ? x : -x) + ((h & 2) == 0 ? y : -y);
-    }
-
-    public double noise(double x, double y) {
-        int X = (int)Math.floor(x) & 255;
-        int Y = (int)Math.floor(y) & 255;
-
-        x -= Math.floor(x);
-        y -= Math.floor(y);
-
-        double u = fade(x);
-        double v = fade(y);
-
-        int A = p[X] + Y;
-        int B = p[X + 1] + Y;
-
-        return lerp(v,
-                lerp(u, grad(p[A], x, y), grad(p[B], x - 1, y)),
-                lerp(u, grad(p[A + 1], x, y - 1), grad(p[B + 1], x - 1, y - 1))
-        );
-    }
 }
