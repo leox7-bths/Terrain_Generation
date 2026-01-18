@@ -7,7 +7,7 @@ import java.awt.image.BufferedImage;
 import javax.imageio.ImageIO;
 import java.io.File;
 
-public class Main extends JPanel implements KeyListener {
+public class Main extends JPanel implements KeyListener, MouseMotionListener, MouseListener {
 
     static int x = 24;
     static int y = 32;
@@ -19,6 +19,12 @@ public class Main extends JPanel implements KeyListener {
 
     static final int MIN_VIEW = viewLength;
     static final int MAX_VIEW = 1000;
+
+    //mouse detect and click walking logic
+    static int hoverX = -1;
+    static int hoverY = -1;
+    static java.util.List<Point> path = new java.util.ArrayList<>();
+    static boolean followPath = false;
 
     static int tileSize = 12;
 
@@ -37,6 +43,41 @@ public class Main extends JPanel implements KeyListener {
     public Main() {
         setFocusable(true);
         addKeyListener(this);
+        addMouseMotionListener(this);
+        addMouseListener(this);
+    }
+    static java.util.List<Point> findPath(int sx, int sy, int tx, int ty) {
+        java.util.List<Point> result = new java.util.ArrayList<>();
+
+        int dx = tx - sx;
+        int dy = ty - sy;
+
+        int steps = Math.max(Math.abs(dx), Math.abs(dy));
+        if (steps == 0) return result;
+
+        double xStep = dx / (double) steps;
+        double yStep = dy / (double) steps;
+
+        double cx = sx;
+        double cy = sy;
+
+        for (int i = 0; i < steps; i++) {
+            cx += xStep;
+            cy += yStep;
+
+            int ix = (int)Math.round(cx);
+            int iy = (int)Math.round(cy);
+
+            if (ix < 0 || iy < 0 || ix >= width || iy >= length)
+                break;
+
+            if (!isWalkable(chunk[ix][iy]))
+                break;
+
+            result.add(new Point(ix, iy));
+        }
+
+        return result;
     }
 
     @Override
@@ -129,80 +170,102 @@ public class Main extends JPanel implements KeyListener {
                 g.setColor(c);
                 g.fillRect(px, py, tileSize, tileSize);
 
-                // Only draw entities if zoomed in enough
-                if (tileSize >= ENTITY_ZOOM_THRESHOLD) {
-
-                    // draw penguins
-                    int penguinScale = 2;
-                    int size = tileSize * penguinScale;
-
-                    for (Penguin p : penguins) {
-                        int screenX = (p.y - camY) * tileSize;
-                        int screenY = (p.x - camX) * tileSize;
-
-                        if (screenX + size < 0 || screenY + size < 0 ||
-                                screenX > viewLength * tileSize || screenY > viewWidth * tileSize)
-                            continue;
-
-                        int drawX = screenX - (size - tileSize) / 2;
-                        int drawY = screenY - (size - tileSize) / 2;
-
-                        if (p.facingLeft) {
-                            g2.drawImage(penguinImage, drawX + size, drawY, -size, size, null);
-                        } else {
-                            g2.drawImage(penguinImage, drawX, drawY, size, size, null);
-                        }
-                    }
-
-                    // draw tumbleweeds
-                    for (Tumbleweed tw : tumbleweeds) {
-                        int sx = (int)((tw.y - camY) * tileSize);
-                        int sy = (int)((tw.x - camX) * tileSize);
-
-                        if (sx < -40 || sy < -40 ||
-                                sx > viewLength * tileSize || sy > viewWidth * tileSize)
-                            continue;
-
-                        Graphics2D gRot = (Graphics2D) g2.create();
-                        gRot.translate(sx + tileSize/2, sy + tileSize/2);
-                        gRot.rotate(tw.angle);
-
-                        int twSize = tileSize * 2;
-                        gRot.drawImage(tumbleweedImage, -twSize/2, -twSize/2, twSize, twSize, null);
-
-                        gRot.dispose();
-                    }
-
-                    // draw cows
-                    int cowScale = 4;
-                    int size2 = tileSize * cowScale;
-
-                    for (Cow p : cows) {
-                        int screenX = (p.y - camY) * tileSize;
-                        int screenY = (p.x - camX) * tileSize;
-
-                        if (screenX + size2 < 0 || screenY + size2 < 0 ||
-                                screenX > viewLength * tileSize || screenY > viewWidth * tileSize)
-                            continue;
-
-                        int drawX = screenX - (size2 - tileSize) / 2;
-                        int drawY = screenY - (size2 - tileSize) / 2;
-
-                        if (p.facingLeft) {
-                            g2.drawImage(cowImage, drawX + size2, drawY, -size2, size2, null);
-                        } else {
-                            g2.drawImage(cowImage, drawX, drawY, size2, size2, null);
-                        }
-                    }
-
-                }
-
                 if (showText) {
                     g.setColor(Color.BLACK);
                     g.drawString(cell, px + 1, py + tileSize - 2);
                 }
+                if (wx == hoverX && wy == hoverY) {
+                    g.setColor(Color.WHITE);
+                    g.fillRect(px, py, tileSize, tileSize);
+                }
 
             }
+        }
+
+        g.setColor(Color.LIGHT_GRAY);
+        for (Point p : path) {
+            int sx = (p.y - camY) * tileSize;
+            int sy = (p.x - camX) * tileSize;
+
+            if (sx >= 0 && sy >= 0 &&
+                    sx < viewLength * tileSize &&
+                    sy < viewWidth * tileSize) {
+
+                g.fillOval(
+                        sx + tileSize / 3,
+                        sy + tileSize / 3,
+                        tileSize / 3,
+                        tileSize / 3
+                );
+            }
+        }
+
+        // Only draw entities if zoomed in enough
+        if (tileSize >= ENTITY_ZOOM_THRESHOLD) {
+
+            // draw penguins
+            int penguinScale = 2;
+            int size = tileSize * penguinScale;
+
+            for (Penguin p : penguins) {
+                int screenX = (p.y - camY) * tileSize;
+                int screenY = (p.x - camX) * tileSize;
+
+                if (screenX + size < 0 || screenY + size < 0 ||
+                        screenX > viewLength * tileSize || screenY > viewWidth * tileSize)
+                    continue;
+
+                int drawX = screenX - (size - tileSize) / 2;
+                int drawY = screenY - (size - tileSize) / 2;
+
+                if (p.facingLeft) {
+                    g2.drawImage(penguinImage, drawX + size, drawY, -size, size, null);
+                } else {
+                    g2.drawImage(penguinImage, drawX, drawY, size, size, null);
+                }
+            }
+
+            // draw tumbleweeds
+            for (Tumbleweed tw : tumbleweeds) {
+                int sx = (int)((tw.y - camY) * tileSize);
+                int sy = (int)((tw.x - camX) * tileSize);
+
+                if (sx < -40 || sy < -40 ||
+                        sx > viewLength * tileSize || sy > viewWidth * tileSize)
+                    continue;
+
+                Graphics2D gRot = (Graphics2D) g2.create();
+                gRot.translate(sx + tileSize/2, sy + tileSize/2);
+                gRot.rotate(tw.angle);
+
+                int twSize = tileSize * 2;
+                gRot.drawImage(tumbleweedImage, -twSize/2, -twSize/2, twSize, twSize, null);
+
+                gRot.dispose();
+            }
+
+            // draw cows
+            int cowScale = 4;
+            int size2 = tileSize * cowScale;
+
+            for (Cow p : cows) {
+                int screenX = (p.y - camY) * tileSize;
+                int screenY = (p.x - camX) * tileSize;
+
+                if (screenX + size2 < 0 || screenY + size2 < 0 ||
+                        screenX > viewLength * tileSize || screenY > viewWidth * tileSize)
+                    continue;
+
+                int drawX = screenX - (size2 - tileSize) / 2;
+                int drawY = screenY - (size2 - tileSize) / 2;
+
+                if (p.facingLeft) {
+                    g2.drawImage(cowImage, drawX + size2, drawY, -size2, size2, null);
+                } else {
+                    g2.drawImage(cowImage, drawX, drawY, size2, size2, null);
+                }
+            }
+
         }
     }
 
@@ -361,6 +424,54 @@ public class Main extends JPanel implements KeyListener {
                     tumbleweeds.remove(i);
             }
 
+            if (followPath && !path.isEmpty()) {
+
+                Point next = path.get(0);
+
+                int dirX = Integer.compare(next.x, x);
+                int dirY = Integer.compare(next.y, y);
+
+                int steps = 1;
+
+                if (isIce(before)) {
+                    steps = 2; // slide
+                }
+
+                if (isWater(before) && random.nextInt(100) < 30) {
+                    steps = 0;
+                }
+
+                chunk[x][y] = before;
+
+                for (int s = 0; s < steps; s++) {
+                    int nx = x + dirX;
+                    int ny = y + dirY;
+
+                    if (nx < 0 || ny < 0 || nx >= width || ny >= length)
+                        break;
+
+                    if (!isWalkable(chunk[nx][ny]))
+                        break;
+
+                    x = nx;
+                    y = ny;
+
+                    // REMOVE path points we passed
+                    if (!path.isEmpty() && path.get(0).x == x && path.get(0).y == y) {
+                        path.remove(0);
+                    }
+                }
+
+                before = chunk[x][y];
+                chunk[x][y] = "[]";
+
+                Penguin.penguinTurn();
+                Cow.cowTurn();
+
+                if (path.isEmpty())
+                    followPath = false;
+            }
+
             panel.repaint();
             up = down = left = right = false;
 
@@ -379,5 +490,49 @@ public class Main extends JPanel implements KeyListener {
 
     //Tumbleweed________________________________________________________
     static java.util.List<Tumbleweed> tumbleweeds = new java.util.ArrayList<>();
+
+    //can walk or not
+    static boolean isWalkable(String cell) {
+        return !cell.contains("SpruceLeaves1");
+    }
+
+    @Override
+    public void mouseDragged(MouseEvent e) {}
+
+    @Override
+    public void mouseMoved(MouseEvent e) {
+
+        int camX = Math.max(0, Math.min(width - viewWidth, x - viewWidth / 2));
+        int camY = Math.max(0, Math.min(length - viewLength, y - viewLength / 2));
+
+        int tileY = e.getX() / tileSize;
+        int tileX = e.getY() / tileSize;
+
+        int wx = tileX + camX;
+        int wy = tileY + camY;
+
+        if (wx >= 0 && wy >= 0 && wx < width && wy < length) {
+            hoverX = wx;
+            hoverY = wy;
+        } else {
+            hoverX = -1;
+            hoverY = -1;
+        }
+
+        repaint();
+    }
+
+    @Override
+    public void mousePressed(MouseEvent e) {
+        if (hoverX != -1 && hoverY != -1) {
+            path = findPath(x, y, hoverX, hoverY);
+            followPath = !path.isEmpty();
+        }
+    }
+
+    @Override public void mouseReleased(MouseEvent e) {}
+    @Override public void mouseClicked(MouseEvent e) {}
+    @Override public void mouseEntered(MouseEvent e) {}
+    @Override public void mouseExited(MouseEvent e) {}
 
 }
