@@ -3,6 +3,9 @@ public class Penguin {
     String under;
     boolean facingLeft = false;
 
+    int stepCounter = 0;
+    static final int MOVE_SCALE = 2;
+
     Penguin(int x, int y, String under) {
         this.x = x;
         this.y = y;
@@ -12,17 +15,29 @@ public class Penguin {
     static void penguinTurn() {
         for (Penguin p : Main.penguins) {
 
+            p.stepCounter++;
+            if (p.stepCounter < MOVE_SCALE) continue;
+            p.stepCounter = 0;
+
             int px = p.x;
             int py = p.y;
 
-            int[] dxs = {-1, 0, 1, 0};
-            int[] dys = {0, -1, 0, 1};
-            int dir = Main.random.nextInt(4);
+            // Random direction
+            int WALK_RADIUS = 30;
+            int tx = px + Main.random.nextInt(WALK_RADIUS * 2 + 1) - WALK_RADIUS;
+            int ty = py + Main.random.nextInt(WALK_RADIUS * 2 + 1) - WALK_RADIUS;
 
-            int nx = px + dxs[dir];
-            int ny = py + dys[dir];
+            tx = Math.max(0, Math.min(Main.width - 1, tx));
+            ty = Math.max(0, Math.min(Main.length - 1, ty));
 
-            p.facingLeft = (dxs[dir] == -1);
+            // move ONE step toward target
+            int dx = Integer.compare(tx, px);
+            int dy = Integer.compare(ty, py);
+
+            int nx = px + dx;
+            int ny = py + dy;
+
+            p.facingLeft = (dy < 0);
 
             if (nx < 0 || nx >= Main.width || ny < 0 || ny >= Main.length)
                 continue;

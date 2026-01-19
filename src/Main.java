@@ -14,10 +14,10 @@ public class Main extends JPanel implements KeyListener, MouseMotionListener, Mo
     static int width = 576;
     static int length = 768;
 
-    static int viewWidth = 80;
-    static int viewLength = 90;
+    static int viewWidth = 40;
+    static int viewLength = 60;
 
-    static final int MIN_VIEW = viewLength;
+    static final int MIN_VIEW = 20;
     static final int MAX_VIEW = 1000;
 
     //mouse detect and click walking logic
@@ -26,7 +26,8 @@ public class Main extends JPanel implements KeyListener, MouseMotionListener, Mo
     static java.util.List<Point> path = new java.util.ArrayList<>();
     static boolean followPath = false;
 
-    static int tileSize = 12;
+    static int tileSize = 18;
+    static int playerScale = 2;
 
     static String[][] chunk = new String[width][length];
     static String before;
@@ -39,6 +40,8 @@ public class Main extends JPanel implements KeyListener, MouseMotionListener, Mo
 
     static final int ENTITY_ZOOM_THRESHOLD = 8;
     static BufferedImage tumbleweedImage;
+
+    static boolean playerFacingLeft = false;
 
     public Main() {
         setFocusable(true);
@@ -105,12 +108,6 @@ public class Main extends JPanel implements KeyListener, MouseMotionListener, Mo
                 int py = i * tileSize;
 
                 if (cell.equals("[]")) {
-                    g.setColor(Color.RED);
-                    g.fillRect(px, py, tileSize, tileSize);
-                    if (showText) {
-                        g.setColor(Color.BLACK);
-                        g.drawString("[]", px + 1, py + tileSize - 2);
-                    }
                     continue;
                 }
 
@@ -182,6 +179,29 @@ public class Main extends JPanel implements KeyListener, MouseMotionListener, Mo
             }
         }
 
+        int baseX = (y - camY) * tileSize;
+        int baseY = (x - camX) * tileSize;
+
+        BufferedImage player = playerSkins[currentSkin];
+        if (player != null) {
+
+            int imgWp = player.getWidth();
+            int imgHp = player.getHeight();
+
+            int drawX = baseX + tileSize / 2 - imgWp / 2;
+            int drawY = baseY + tileSize / 2 - imgHp / 2;
+
+            if (playerFacingLeft) {
+                Graphics2D gFlip = (Graphics2D) g2.create();
+                gFlip.translate(drawX + imgWp, drawY);
+                gFlip.scale(-1, 1);
+                gFlip.drawImage(player, 0, 0, null);
+                gFlip.dispose();
+            } else {
+                g2.drawImage(player, drawX, drawY, null);
+            }
+        }
+
         g.setColor(Color.LIGHT_GRAY);
         for (Point p : path) {
             int sx = (p.y - camY) * tileSize;
@@ -202,26 +222,35 @@ public class Main extends JPanel implements KeyListener, MouseMotionListener, Mo
 
         // Only draw entities if zoomed in enough
         if (tileSize >= ENTITY_ZOOM_THRESHOLD) {
+            int imgW = 0;
+            int imgH = 0;
 
             // draw penguins
-            int penguinScale = 2;
-            int size = tileSize * penguinScale;
-
             for (Penguin p : penguins) {
                 int screenX = (p.y - camY) * tileSize;
                 int screenY = (p.x - camX) * tileSize;
 
-                if (screenX + size < 0 || screenY + size < 0 ||
+                BufferedImage img = penguinImage;
+                if (img == null) continue;
+
+                imgW = img.getWidth();
+                imgH = img.getHeight();
+
+                int drawX = screenX + tileSize / 2 - imgW / 2;
+                int drawY = screenY + tileSize / 2 - imgH / 2;
+
+                if (screenX + imgW < 0 || screenY + imgH < 0 ||
                         screenX > viewLength * tileSize || screenY > viewWidth * tileSize)
                     continue;
 
-                int drawX = screenX - (size - tileSize) / 2;
-                int drawY = screenY - (size - tileSize) / 2;
-
                 if (p.facingLeft) {
-                    g2.drawImage(penguinImage, drawX + size, drawY, -size, size, null);
+                    Graphics2D gFlip = (Graphics2D) g2.create();
+                    gFlip.translate(drawX + imgW, drawY);
+                    gFlip.scale(-1, 1);
+                    gFlip.drawImage(img, 0, 0, null);
+                    gFlip.dispose();
                 } else {
-                    g2.drawImage(penguinImage, drawX, drawY, size, size, null);
+                    g2.drawImage(img, drawX, drawY, null);
                 }
             }
 
@@ -230,39 +259,78 @@ public class Main extends JPanel implements KeyListener, MouseMotionListener, Mo
                 int sx = (int)((tw.y - camY) * tileSize);
                 int sy = (int)((tw.x - camX) * tileSize);
 
-                if (sx < -40 || sy < -40 ||
+                BufferedImage img = tumbleweedImage;
+                if (img == null) continue;
+
+                imgW = img.getWidth();
+                imgH = img.getHeight();
+
+                if (sx < -imgW || sy < -imgH ||
                         sx > viewLength * tileSize || sy > viewWidth * tileSize)
                     continue;
 
                 Graphics2D gRot = (Graphics2D) g2.create();
-                gRot.translate(sx + tileSize/2, sy + tileSize/2);
+                gRot.translate(sx + tileSize / 2, sy + tileSize / 2);
                 gRot.rotate(tw.angle);
-
-                int twSize = tileSize * 2;
-                gRot.drawImage(tumbleweedImage, -twSize/2, -twSize/2, twSize, twSize, null);
-
+                gRot.drawImage(img, -imgW / 2, -imgH / 2, null);
                 gRot.dispose();
             }
 
             // draw cows
-            int cowScale = 4;
-            int size2 = tileSize * cowScale;
-
             for (Cow p : cows) {
                 int screenX = (p.y - camY) * tileSize;
                 int screenY = (p.x - camX) * tileSize;
 
-                if (screenX + size2 < 0 || screenY + size2 < 0 ||
+                BufferedImage img = cowImage;
+                if (img == null) continue;
+
+                imgW = img.getWidth();
+                imgH = img.getHeight();
+
+                int drawX = screenX + tileSize / 2 - imgW / 2;
+                int drawY = screenY + tileSize / 2 - imgH / 2;
+
+                if (screenX + imgW < 0 || screenY + imgH < 0 ||
                         screenX > viewLength * tileSize || screenY > viewWidth * tileSize)
                     continue;
 
-                int drawX = screenX - (size2 - tileSize) / 2;
-                int drawY = screenY - (size2 - tileSize) / 2;
+                if (p.facingLeft) {
+                    Graphics2D gFlip = (Graphics2D) g2.create();
+                    gFlip.translate(drawX + imgW, drawY);
+                    gFlip.scale(-1, 1);
+                    gFlip.drawImage(img, 0, 0, null);
+                    gFlip.dispose();
+                } else {
+                    g2.drawImage(img, drawX, drawY, null);
+                }
+            }
+
+            // draw bison
+            for (Bison p : bisons) {
+                int screenX = (p.y - camY) * tileSize;
+                int screenY = (p.x - camX) * tileSize;
+
+                BufferedImage img = bisonImage;
+                if (img == null) continue;
+
+                imgW = img.getWidth();
+                imgH = img.getHeight();
+
+                int drawX = screenX + tileSize / 2 - imgW / 2;
+                int drawY = screenY + tileSize / 2 - imgH / 2;
+
+                if (screenX + imgW < 0 || screenY + imgH < 0 ||
+                        screenX > viewLength * tileSize || screenY > viewWidth * tileSize)
+                    continue;
 
                 if (p.facingLeft) {
-                    g2.drawImage(cowImage, drawX + size2, drawY, -size2, size2, null);
+                    Graphics2D gFlip = (Graphics2D) g2.create();
+                    gFlip.translate(drawX + imgW, drawY);
+                    gFlip.scale(-1, 1);
+                    gFlip.drawImage(img, 0, 0, null);
+                    gFlip.dispose();
                 } else {
-                    g2.drawImage(cowImage, drawX, drawY, size2, size2, null);
+                    g2.drawImage(img, drawX, drawY, null);
                 }
             }
 
@@ -284,6 +352,10 @@ public class Main extends JPanel implements KeyListener, MouseMotionListener, Mo
         if (k == KeyEvent.VK_A) left = true;
         if (k == KeyEvent.VK_D) right = true;
         if (k == KeyEvent.VK_N) showText = !showText;
+        if (k == KeyEvent.VK_1) currentSkin = 0;
+        if (k == KeyEvent.VK_2) currentSkin = 1;
+        if (k == KeyEvent.VK_3) currentSkin = 2;
+        if (k == KeyEvent.VK_4) currentSkin = 3;
 
         if (k == KeyEvent.VK_R) Generation.regenerate();
         if (k == KeyEvent.VK_C) {
@@ -342,7 +414,20 @@ public class Main extends JPanel implements KeyListener, MouseMotionListener, Mo
             e.printStackTrace();
         }
         try {
+            bisonImage = ImageIO.read(new File("bison.png"));
+            bisonPixelColor = new Color(bisonImage.getRGB(0, 0), true);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        try {
             tumbleweedImage = ImageIO.read(new File("tumbleweed.png"));
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        try {
+            for (int i = 0; i < 4; i++) {
+                playerSkins[i] = ImageIO.read(new File("player" + (i + 1) + ".png"));
+            }
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -371,6 +456,9 @@ public class Main extends JPanel implements KeyListener, MouseMotionListener, Mo
                 String currentCell = before;
                 int steps = 1;
 
+                if (left) playerFacingLeft = true;
+                if (right) playerFacingLeft = false;
+
                 // ice move 2 tiles
                 if (isIce(currentCell)) {
                     steps = 2;
@@ -389,6 +477,9 @@ public class Main extends JPanel implements KeyListener, MouseMotionListener, Mo
                     if (nx < 0 || nx >= width || ny < 0 || ny >= length)
                         break;
 
+                    if ((chunk[nx][ny].contains("SpruceLeaves1")) || (chunk[nx][ny].contains("SpruceLeaves2")))
+                        break;
+
                     x = nx;
                     y = ny;
                 }
@@ -397,6 +488,7 @@ public class Main extends JPanel implements KeyListener, MouseMotionListener, Mo
                 chunk[x][y] = "[]";
                 Penguin.penguinTurn();
                 Cow.cowTurn();
+                Bison.bisonTurn();
             }
             if (terrain.equals("desert") && random.nextInt(40) == 0) {
 
@@ -430,6 +522,8 @@ public class Main extends JPanel implements KeyListener, MouseMotionListener, Mo
 
                 int dirX = Integer.compare(next.x, x);
                 int dirY = Integer.compare(next.y, y);
+                if (dirY < 0) playerFacingLeft = true;
+                if (dirY > 0) playerFacingLeft = false;
 
                 int steps = 1;
 
@@ -467,6 +561,7 @@ public class Main extends JPanel implements KeyListener, MouseMotionListener, Mo
 
                 Penguin.penguinTurn();
                 Cow.cowTurn();
+                Bison.bisonTurn();
 
                 if (path.isEmpty())
                     followPath = false;
@@ -488,8 +583,17 @@ public class Main extends JPanel implements KeyListener, MouseMotionListener, Mo
     static BufferedImage cowImage;
     static Color cowPixelColor;
 
+    //Bison________________________________________________________
+    static java.util.List<Bison> bisons = new java.util.ArrayList<>();
+    static BufferedImage bisonImage;
+    static Color bisonPixelColor;
+
     //Tumbleweed________________________________________________________
     static java.util.List<Tumbleweed> tumbleweeds = new java.util.ArrayList<>();
+
+    //Player------------------------------------------------------------
+    static BufferedImage[] playerSkins = new BufferedImage[4];
+    static int currentSkin = 0;
 
     //can walk or not
     static boolean isWalkable(String cell) {

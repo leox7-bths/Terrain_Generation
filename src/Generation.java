@@ -105,7 +105,7 @@ public class Generation {
                     }
 
                     // cows
-                    if (Main.chunk[i][j].endsWith("Grass") && Main.random.nextInt(1000) == 0) {
+                    if (Main.chunk[i][j].endsWith("Grass") && Main.random.nextInt(1500) == 0) {
                         boolean spaceAround = true;
                         // Check adjacent cells for other cows
                         for (int dx = -1; dx <= 1; dx++) {
@@ -202,6 +202,31 @@ public class Generation {
                             Main.chunk[x][y] = Main.chunk[x][y].charAt(0) + "SpruceLeaves2";
                         }
                     }
+                    if (Main.chunk[i][j].endsWith("Snow") && Main.random.nextInt(1500) == 0) {
+                        boolean spaceAround = true;
+                        // Check adjacent cells for other cows
+                        for (int dx = -1; dx <= 1; dx++) {
+                            for (int dy = -1; dy <= 1; dy++) {
+                                int nx = i + dx;
+                                int ny = j + dy;
+
+                                if (nx < 0 || nx >= Main.width || ny < 0 || ny >= Main.length)
+                                    continue;
+
+                                if (Main.chunk[nx][ny].endsWith("Bison")) {
+                                    spaceAround = false;
+                                }
+                            }
+                        }
+
+                        // inside plains Bison placement
+                        if (spaceAround) {
+                            String original = Main.chunk[i][j];
+                            Main.chunk[i][j] = Main.chunk[i][j].charAt(0) + "Bison";
+                            Main.bisons.add(new Bison(i, j, original));
+                        }
+                    }
+
                 }
             }
         }
@@ -212,7 +237,7 @@ public class Generation {
 
 
                     // penguins
-                    if (Main.chunk[i][j].endsWith("GlacierIce") && Main.random.nextInt(700) == 0) {
+                    if (Main.chunk[i][j].endsWith("GlacierIce") && Main.random.nextInt(1500) == 0) {
                         boolean spaceAround = true;
                         // Check adjacent cells for other penguins
                         for (int dx = -1; dx <= 1; dx++) {
